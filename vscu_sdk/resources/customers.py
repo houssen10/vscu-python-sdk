@@ -9,7 +9,7 @@ class Customers(BaseResource):
         """
         Query customer details by KRA PIN.
         
-        :param query: {'custTin': 'P0...'}
-        Endpoint: selectCustomer
+        :param query: {'tin': 'P0...', 'bhfId': '00', 'custmTin': 'P0...'}
+        Endpoint: customers/selectCustomer
         """
-        return self.request("POST", "selectCustomer", data=query or {})
+        return self.request("POST", "customers/selectCustomer", data=query or {})

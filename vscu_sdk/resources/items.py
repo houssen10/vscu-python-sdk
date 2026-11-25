@@ -9,30 +9,30 @@ class Items(BaseResource):
         """
         Register or update item information in the VSCU / KRA catalog.
         
-        Endpoint: saveItem
+        Endpoint: items/saveItems
         """
-        return self.request("POST", "saveItem", data=data)
+        return self.request("POST", "items/saveItems", data=data)
 
     def get_item_list(self, query: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Retrieve list of registered items.
         
-        Endpoint: selectItemList
+        Endpoint: items/selectItems
         """
-        return self.request("POST", "selectItemList", data=query or {})
+        return self.request("POST", "items/selectItems", data=query or {})
 
     def get_item_cls_list(self, query: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Retrieve KRA item classification / HS code catalog.
         
-        Endpoint: selectItemClsList
+        Endpoint: itemClass/selectItemsClass
         """
-        return self.request("POST", "selectItemClsList", data=query or {})
+        return self.request("POST", "itemClass/selectItemsClass", data=query or {})
 
     def select_code_list(self, query: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Retrieve standard KRA reference codes (currencies, units, countries, payment types).
         
-        Endpoint: selectCodeList
+        Endpoint: code/selectCodes
         """
-        return self.request("POST", "selectCodeList", data=query or {})
+        return self.request("POST", "code/selectCodes", data=query or {})

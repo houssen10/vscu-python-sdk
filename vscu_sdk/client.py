@@ -52,3 +52,21 @@ class Vscu:
         if self._customers is None:
             self._customers = Customers(self.session, self.config)
         return self._customers
+
+    def initialize(self, tin: str, bhf_id: str, dvc_srl_no: str) -> Dict[str, Any]:
+        """
+        Perform one-time VSCU device initialization for a TIN + branch.
+
+        Endpoint: initializer/selectInitInfo
+        """
+        return self.sales().request(
+            "POST",
+            "initializer/selectInitInfo",
+            data={"tin": tin, "bhfId": bhf_id, "dvcSrlNo": dvc_srl_no},
+        )
+
+    @staticmethod
+    def build_qr_code_url(tin: str, bhf_id: str, rcpt_sign: str, sandbox: bool = False) -> str:
+        """Build the KRA eTIMS verification QR code URL from the signed receipt."""
+        host = "etims-sbx.kra.go.ke" if sandbox else "etims.kra.go.ke"
+        return f"https://{host}/common/link/etims/receipt/indexEtimsReceiptData?Data={tin}{bhf_id}{rcpt_sign}"

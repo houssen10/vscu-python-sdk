@@ -26,17 +26,17 @@ class Sales(BaseResource):
         """
         Search for items stored within the VSCU cache/system.
         
-        Endpoint: selectItems
+        Endpoint: items/selectItems
         """
-        return self.request("POST", "selectItems", data=query or {})
+        return self.request("POST", "items/selectItems", data=query or {})
 
     def select_customer(self, query: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Lookup customer details and PIN status.
         
-        Endpoint: selectCustomer
+        Endpoint: customers/selectCustomer
         """
-        return self.request("POST", "selectCustomer", data=query or {})
+        return self.request("POST", "customers/selectCustomer", data=query or {})
 
     def select_invoice_details(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """

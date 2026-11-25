@@ -77,10 +77,22 @@ class ERPNextVscuConnector:
 
         # Payment Type mapping:
         # 01: Cash, 02: Credit, 03: Mobile Money (M-Pesa), 04: Bank
-        mop = str(get_val("mode_of_payment", "")).lower()
+        mop = str(get_val("mode_of_payment", "") or "").lower()
+        if not mop:
+            payments = get_val("payments", []) or []
+            for p in payments:
+                p_amt = p.get("amount", 0) if isinstance(p, dict) else getattr(p, "amount", 0)
+                if float(p_amt or 0) > 0:
+                    p_mop = p.get("mode_of_payment", "") if isinstance(p, dict) else getattr(p, "mode_of_payment", "")
+                    if p_mop:
+                        mop = str(p_mop).lower()
+                        break
+
         if "mpesa" in mop or "m-pesa" in mop or "mobile" in mop:
             dto.pmt_ty_cd = "03"
-        elif "credit" in mop or get_val("outstanding_amount", 0) > 0:
+        elif "bank" in mop or "card" in mop or "eft" in mop or "rtgs" in mop:
+            dto.pmt_ty_cd = "04"
+        elif "credit" in mop or float(get_val("outstanding_amount", 0) or 0) > 0:
             dto.pmt_ty_cd = "02"
         else:
             dto.pmt_ty_cd = "01"
@@ -97,33 +109,39 @@ class ERPNextVscuConnector:
             def get_item_val(k: str, default: Any = None) -> Any:
                 return item_row.get(k, default) if isinstance(item_row, dict) else getattr(item_row, k, default)
 
-            # Determine KRA Tax Type from ERPNext Item / Tax Template
-            tax_rate = float(get_item_val("tax_rate", 16.0) or 16.0)
-            item_tax_template = str(get_item_val("item_tax_template", "")).lower()
-
-            if "exempt" in item_tax_template:
-                tax_type = "A"
-            elif "zero" in item_tax_template:
-                tax_type = "C"
-            elif "8" in item_tax_template or tax_rate == 8.0:
-                tax_type = "E"
-            elif tax_rate == 0.0:
-                tax_type = "D"
+            # Determine KRA Tax Type: explicit custom_kra_tax_type takes precedence
+            explicit_tax = str(get_item_val("custom_kra_tax_type") or "").strip().upper()
+            if explicit_tax in ("A", "B", "C", "D", "E"):
+                tax_type = explicit_tax
             else:
-                tax_type = "B"  # Default 16% standard VAT
+                tax_rate = float(get_item_val("tax_rate", 16.0) or 16.0)
+                item_tax_template = str(get_item_val("item_tax_template", "") or "").lower()
+
+                if "exempt" in item_tax_template:
+                    tax_type = "A"
+                elif "zero" in item_tax_template:
+                    tax_type = "C"
+                elif "non-vat" in item_tax_template or "non vat" in item_tax_template:
+                    tax_type = "D"
+                elif "8%" in item_tax_template or "8 %" in item_tax_template or tax_rate == 8.0:
+                    tax_type = "E"
+                elif tax_rate == 0.0:
+                    tax_type = "D"
+                else:
+                    tax_type = "B"  # Default 16% standard VAT
 
             qty = abs(float(get_item_val("qty", 1.0)))
             rate = abs(float(get_item_val("rate", 0.0)))
 
             dto.add_item({
-                "itemCd": str(get_item_val("item_code", "")),
+                "itemCd": str(get_item_val("custom_kra_item_cd") or get_item_val("item_code", "")),
                 "itemClsCd": str(get_item_val("custom_kra_hs_code") or get_item_val("custom_item_classification") or "50131702"),
                 "itemNm": str(get_item_val("item_name") or get_item_val("item_code")),
                 "price": rate,
                 "qty": qty,
                 "taxType": tax_type,
-                "pkgUnitCd": str(get_item_val("custom_kra_pkg_unit", "OU")),
-                "qtyUnitCd": str(get_item_val("uom", "U")),
+                "pkgUnitCd": str(get_item_val("custom_kra_pkg_unit") or "NT"),
+                "qtyUnitCd": str(get_item_val("custom_kra_qty_unit") or "U"),
             })
 
         dto.calculate_totals()
