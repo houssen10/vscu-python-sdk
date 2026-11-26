@@ -152,6 +152,45 @@ class TestVscuDtos(unittest.TestCase):
         self.assertEqual(data["totItemCnt"], 1)
         self.assertEqual(data["totAmt"], 650.0)
 
+    def test_erpnext_connector_tax_exclusive_vat(self):
+        """Test ERPNext connector converts tax-exclusive rates to VAT-inclusive totals."""
+        client = Vscu({"base_url": "http://127.0.0.1:8088/"})
+        connector = ERPNextVscuConnector(client)
+
+        sample_doc = {
+            "name": "INV/26/11/024",
+            "is_return": 0,
+            "posting_date": "2026-11-25",
+            "customer_name": "Walk-in Customer",
+            "taxes": [
+                {
+                    "charge_type": "On Net Total",
+                    "account_head": "VAT - TFL",
+                    "rate": 16,
+                    "tax_amount": 60.80,
+                    "included_in_print_rate": 0,
+                }
+            ],
+            "items": [
+                {
+                    "item_code": "PROD-CHK-001",
+                    "item_name": "Dressed Whole Chicken",
+                    "qty": 1,
+                    "rate": 380.0,
+                }
+            ],
+        }
+
+        dto = connector.build_dto_from_sales_invoice(
+            doc=sample_doc,
+            company_pin="P000000001A",
+            fiscal_seq_no=9,
+        )
+        data = dto.to_dict()
+        self.assertEqual(data["totTaxblAmt"], 380.0)
+        self.assertEqual(data["totTaxAmt"], 60.8)
+        self.assertEqual(data["totAmt"], 440.8)
+
 
 if __name__ == "__main__":
     unittest.main()

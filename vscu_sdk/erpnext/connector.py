@@ -103,6 +103,16 @@ class ERPNextVscuConnector:
             dto.rfd_dt = sales_dt
             dto.rfd_rsn_cd = str(get_val("custom_kra_refund_reason") or "01")  # 01: Sales Return
 
+        # Detect whether ERPNext item rates are tax-exclusive (VAT added on top of basic rate)
+        taxes = get_val("taxes", []) or []
+        is_tax_exclusive = False
+        for t in taxes:
+            t_incl = t.get("included_in_print_rate", 0) if isinstance(t, dict) else getattr(t, "included_in_print_rate", 0)
+            t_amt = t.get("tax_amount", 0) if isinstance(t, dict) else getattr(t, "tax_amount", 0)
+            if not t_incl and float(t_amt or 0) != 0.0:
+                is_tax_exclusive = True
+                break
+
         # Process Items
         items = get_val("items", [])
         for item_row in items:
@@ -132,6 +142,12 @@ class ERPNextVscuConnector:
 
             qty = abs(float(get_item_val("qty", 1.0)))
             rate = abs(float(get_item_val("rate", 0.0)))
+
+            # Convert tax-exclusive ERPNext rate to tax-inclusive price expected by ItemDTO
+            if is_tax_exclusive:
+                kra_rate_pct = {"B": 16.0, "E": 8.0}.get(tax_type, 0.0)
+                if kra_rate_pct > 0.0:
+                    rate = round(rate * (1.0 + kra_rate_pct / 100.0), 4)
 
             dto.add_item({
                 "itemCd": str(get_item_val("custom_kra_item_cd") or get_item_val("item_code", "")),
